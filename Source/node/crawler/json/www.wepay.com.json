@@ -1,0 +1,16 @@
+{
+   "url": "https://www.wepay.com",
+   "visitedURLs": {
+      "https://www.wepay.com": true,
+      "https://www.wepay.com/": "opening",
+      "https://www.wepay.com/about": "opening",
+      "https://www.wepay.com/fees": "opening",
+      "https://www.wepay.com/developer": "opening",
+      "https://www.wepay.com/gallery": "opening",
+      "https://www.wepay.com/login": "opening",
+      "https://www.wepay.com/credit-cards": "opening",
+      "https://www.wepay.com/api": "opening",
+      "https://www.wepay.com/api/payments-101": "opening",
+      "https://www.wepay.com/online-invoicing": "opening"
+   }
+}
