@@ -3,10 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProjectDna", "ProjectDna\ProjectDna.csproj", "{84039320-E9E9-4642-9659-48FB14D4FF72}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dna", "Dna\Dna.csproj", "{ADAD94EF-7756-448A-BBC1-3EC14F3ED00A}"
+EndProject
 Global
-	GlobalSection(CodealikeProperties) = postSolution
-		SolutionGuid = fb5f8a10-9423-4346-93f3-d51ff164c129
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -16,8 +15,15 @@ Global
 		{84039320-E9E9-4642-9659-48FB14D4FF72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84039320-E9E9-4642-9659-48FB14D4FF72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84039320-E9E9-4642-9659-48FB14D4FF72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADAD94EF-7756-448A-BBC1-3EC14F3ED00A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADAD94EF-7756-448A-BBC1-3EC14F3ED00A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADAD94EF-7756-448A-BBC1-3EC14F3ED00A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADAD94EF-7756-448A-BBC1-3EC14F3ED00A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(CodealikeProperties) = postSolution
+		SolutionGuid = fb5f8a10-9423-4346-93f3-d51ff164c129
 	EndGlobalSection
 EndGlobal
