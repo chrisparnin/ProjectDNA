@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Dna.JSLib
+namespace Dna.JSLib.Shells
 {
     public class GitShell
     {

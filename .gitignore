@@ -1,3 +1,9 @@
 bin/
 obj/
 .suo
+Source/.HistoryData/usage.log
+Source/Driver/App.config
+Source/Driver/Dna.csproj
+Source/Driver/Program.cs
+Source/Driver/Properties/AssemblyInfo.cs
+Source/ProjectDna.v11.suo

@@ -32,6 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -43,16 +46,22 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="CSVReader.cs" />
+    <Compile Include="JSLib\Api.cs" />
+    <Compile Include="JSLib\Shells\ApiVersionsShell.cs" />
+    <Compile Include="JSLib\Shells\BowerShell.cs" />
+    <Compile Include="JSLib\Shells\DetectShell.cs" />
     <Compile Include="JSLib\Fetch.cs" />
-    <Compile Include="JSLib\GitShell.cs" />
-    <Compile Include="JSLib\GruntShell.cs" />
-    <Compile Include="JSLib\NpmShell.cs" />
-    <Compile Include="JSLib\Shell.cs" />
+    <Compile Include="JSLib\Shells\GitShell.cs" />
+    <Compile Include="JSLib\Shells\GruntShell.cs" />
+    <Compile Include="JSLib\Shells\NpmShell.cs" />
+    <Compile Include="JSLib\Shells\SequenceShell.cs" />
+    <Compile Include="JSLib\Shells\Shell.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

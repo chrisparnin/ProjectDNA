@@ -15,7 +15,7 @@ exports.extractExports = function(path)
 	}
 	catch(e)
 	{
-		console.log(e);	
+		//console.log(e);	
 	}
 	return [];
 }

@@ -1,4 +1,5 @@
 ﻿using Dna.JSLib;
+using Dna.JSLib.Shells;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,5 +14,6 @@ namespace Dna
         public static string GruntPath = Shell.FindExecutablePath("grunt");
         public static string NpmPath = Shell.FindExecutablePath("npm");
 
+        public static string NodeFilesPath = @"C:/DEV/ProjectDNA/Source/node";
     }
 }
