@@ -49,6 +49,9 @@ function matchBigram (traceObj, apis)
 
 		for( var apiName in apis )
 		{
+			if( apiName == "abaaso")
+				continue;
+			
 			var api = apis[apiName];
 			for( var v in api.versions )
 			{
@@ -125,7 +128,11 @@ function compare(v1, v2)
 		}
 	}
 
-	return sum / (_.keys(v1).length * _.keys(v2).length);
+	var a = _.reduce(_.values(v1), function (memo, v) { return memo + v; }, 0 );
+	var b = _.reduce(_.values(v2), function (memo, v) { return memo + v; }, 0 );
+
+	var magnitude = Math.sqrt(a*a) * Math.sqrt(b*b);
+	return sum / magnitude;
 }
 
 function charPairFrequency (wholeStr) 
