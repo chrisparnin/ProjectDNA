@@ -29,6 +29,28 @@ exports.extractPhantomJsCalls = function (traceObj)
 
 } 
 
+exports.extractBodyCalls = function (body) 
+{
+	var allCalls = {};
+
+	try
+	{	
+		var result = esprima.parse(body, options);
+		var calls = parse.extractCalls( result );
+
+		for( var c=0; c < calls.length; c++ )
+		{
+			var call = calls[c];
+			allCalls[call] = call;
+		}
+	}
+	catch(e)
+	{
+
+	}
+	return allCalls;
+}
+
 exports.extractTraceCalls = function (data) 
 {
 

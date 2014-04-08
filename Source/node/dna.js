@@ -11,69 +11,201 @@ var args = process.argv.slice(2);
 
 if( args[0] == "sequence" )
 {
-	sequence(args[1]);
+	// args[1] = "JsLib"
+	// collection of javascript libraries produced by ApiVersions.js (build/extract cmds in C# driver)
+	// api/versions/content
+	var apis = loadJsLib(path);
+	sequence(apis);
+	console.log( JSON.stringify(apis, null, 3 ));
 
 	//var dist = charPairFrequency("france is pants, it is nice, this time of year");
 	//console.log( dist );
 }
 else if( args[0] == "detect" )
 {
-	detect(args[1]);	
+	var apis = require('./foo.json');
+	detect(apis, args[1], {bigramThreshold: .995});
+}
+else if( args[0] == "detect-api" )
+{
+	var candidates = [];
+
+	console.log( "loading");
+	var apis = loadSingleJsLib( args[1] ); // path to api versions 
+
+	console.log( "sequencing");
+	sequence( apis );
+
+	var api = _.values(apis)[0];
+
+	var data = fs.readFileSync(args[2], 'utf8'); 
+	var traceObj = JSON.parse( data );
+
+	for( var script in traceObj.scripts )
+	{
+		var props = scriptProperties(traceObj.scripts[script]);
+		console.log( "matching", props.scriptUrl);
+
+		var apiCandidates = matchAllApi (api, props);
+		for( var i = 0; i < apiCandidates.length; i++ )
+		{
+			candidates.push( apiCandidates[i] );
+		}
+	}
+
+	console.log("candidate pruning", candidates.length);
+	for( var i =0; i < candidates.length; i++ )
+	{
+		var candidate = candidates[i];
+	
+		if( candidate.d >= .995 || candidate.hash || candidate.markerScore > .90 )
+		{
+			console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
+			console.log( candidate.d, candidate.hash, candidate.markerScore);
+		}
+	}
+}
+else if( args[0] == "test" )
+{
+	var apis = require('./foo.json');
+
+	var data = fs.readFileSync(args[1], 'utf8'); 
+	var traceObj = JSON.parse( data );
+
+	// trace
+	var v172 = "http://z.cdn.turner.com/cnn/.e/js/libs/jquery-1.7.2.min.js";
+	var body = traceObj.scripts[v172].body.trim();
+	var hash = crypto.createHash('md5');
+	hash.setEncoding('hex');
+	hash.write(body);
+	hash.end();
+	var md5 = hash.read();
+
+	// api
+	var jq172 = apis.jquery.versions["1.7.2"].contents[1];
+
+	var d = compare( jq172.bigram, charPairFrequency(body) );
+
+
+	console.log( d, md5, jq172.hash);
+
+	//console.log( jq172.bigram, charPairFrequency(body));
+	//console.log(body);
 }
 else
 {
 	main();
 }
 
-function detect (path) 
+function detect (apis, path, options) 
 {
-	var apis = require('./foo.json');
-
 	var data = fs.readFileSync(path, 'utf8'); 
 	// fix small issue with trace tool.
 	//data = data.replace(/[}][,]undefined\n/g,"},{}");
 
+	threshold = 0.0;
+	if( options )
+	{
+		threshold = options.bigramThreshold;
+	}
+
 	var traceObj = JSON.parse( data );
 
-	matchBigram(traceObj, apis);
+	matchAll(traceObj, apis, threshold);
 
 	//matchCalls(traceObj, apis);
 }
 
-function matchBigram (traceObj, apis) 
+function scriptProperties(script)
 {
+	var body = script.body;
+	var scriptUrl = script.scriptUrl;
+
+	var calls = trace.extractBodyCalls( body );
+
+	var hash = crypto.createHash('md5');
+	hash.setEncoding('hex');
+	hash.write(body);
+	hash.end();
+	md5 = hash.read();
+
+	return {body: body, scriptUrl: scriptUrl, calls: calls, md5: md5};
+}
+
+function matchAll (traceObj, apis, threshold) 
+{
+	var candidates = [];
+
 	for( var script in traceObj.scripts )
 	{
-		var body = traceObj.scripts[script].body;
-		var scriptUrl = traceObj.scripts[script].scriptUrl;
+		var props = scriptProperties(traceObj.scripts[script]);
 
 		for( var apiName in apis )
 		{
-			if( apiName == "abaaso")
-				continue;
-			
 			var api = apis[apiName];
-			for( var v in api.versions )
+
+			var apiCandidates = matchAllApi (api, props);
+			for( var i = 0; i < apiCandidates.length; i++ )
 			{
-				var version = api.versions[v];
-				for( var i = 0; i < version.contents.length; i++  )
-				{
-					var content = version.contents[i];
-
-					var d = compare( content.bigram, charPairFrequency(body) );
-
-					var hash = crypto.createHash('md5');
-					hash.setEncoding('hex');
-					hash.write(body);
-					hash.end();
-					md5 = hash.read();
-
-					console.log( scriptUrl + ":" + apiName + ":" + v + ":" + content.fullPath);
-					console.log( d + ":" + (md5 == content.hash));					
-				}
+				candidates.push( apiCandidates[i] );
 			}
 		}
 	}
+
+	for( var i =0; i < candidates.length; i++ )
+	{
+		var candidate = candidates[i];
+		if( candidate.d >= threshold || candidate.hash || candidate.markerScore > .90 )
+		{
+			console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
+			console.log( candidate.d, candidate.hash, candidate.markerScore);
+		}
+	}
+}
+
+function matchAllApi (api, props) 
+{
+	var candidates = [];
+
+	var body = props.body;
+	var md5 = props.md5;
+	var scriptUrl = props.scriptUrl;
+
+
+	for( var v in api.versions )
+	{
+		//console.log( api.name, v );
+		var version = api.versions[v];
+		for( var i = 0; i < version.contents.length; i++  )
+		{
+			var content = version.contents[i];
+
+			// bigram score
+			var d = compare( content.bigram, charPairFrequency(body) );
+
+			// call score
+
+			var markers = _.filter( content.distinctMarkers, function (m) 
+			{
+				return Object.hasOwnProperty.call(props.calls,m);
+			});
+
+			candidates.push(
+			{
+				markerScore : markers.length / content.distinctMarkers.length,
+				d : d,
+				hash : md5 == content.hash,
+				fullPath: content.fullPath,
+				apiName: api.name,
+				version: v,
+				scriptUrl: scriptUrl
+			});
+
+		}
+	}
+
+	return candidates;
+
 }
 
 function matchCalls(traceObj, apis)
@@ -119,19 +251,22 @@ function compare(v1, v2)
 {
 	var allKeys = _.union(_.keys(v1),_.keys(v2));
 	var sum = 0.0;
+	var magA = 0.0;
+	var magB = 0.0;
 	for( var i =0; i < allKeys.length; i++ )
 	{
 		var key = allKeys[i];
 		if( v1.hasOwnProperty(key) && v2.hasOwnProperty(key) )
 		{
 			sum += v1[key] * v2[key];
+			magA += v1[key] * v1[key];
+			magB += v2[key] * v2[key];
 		}
 	}
 
-	var a = _.reduce(_.values(v1), function (memo, v) { return memo + v; }, 0 );
-	var b = _.reduce(_.values(v2), function (memo, v) { return memo + v; }, 0 );
+	var magnitude = Math.sqrt(magA) * Math.sqrt(magB);
 
-	var magnitude = Math.sqrt(a*a) * Math.sqrt(b*b);
+	//console.log( sum, magnitude);
 	return sum / magnitude;
 }
 
@@ -186,9 +321,8 @@ function letterPairs (str)
 }
 
 
-function sequence(path)
+function sequence(apis)
 {
-	var apis = loadJsLib(path);
 	//console.log( JSON.stringify(apis, null, 3 ));
 
 	//var apis = loadApis('./apis');
@@ -228,7 +362,7 @@ function sequence(path)
 	// Trim out overlapping makers.
 	distinctMarkers(apis);
 
-	console.log( JSON.stringify(apis, null, 3 ));
+	return apis;
 }
 
 function sequenceAPI(apiPath)
@@ -304,10 +438,23 @@ function isUnique(other, apis, sourceApi)
 }
 
 
+function loadSingleJsLib( dir )
+{
+	var apis = {};
+	var apiName = path.basename(dir);
+
+	apis[apiName] = {};
+	apis[apiName].name = apiName;
+	apis[apiName].versions = {};
+
+	loadJsLibVersions(apis,dir, apiName);
+
+	return apis;
+}
+
 function loadJsLib( base )
 {
 	var dirs = fs.readdirSync( base );
-	var versionRegex = /((\d+|[.])*)[.]/
 
 	var apis = {};
 
@@ -319,47 +466,50 @@ function loadJsLib( base )
 		if( !apis.hasOwnProperty( apiName ) )
 		{
 			apis[apiName] = {};
+			apis.name = apiName;
 			apis[apiName].versions = {};
 		}
 
-		// versions of an api
-		var versions = fs.readdirSync( dir );
-		for( var j = 0; j < versions.length; j++ )
-		{
-
-			var versionDir = versions[j];
-			var versionName = path.basename(versionDir).replace(apiName+"-");
-			var versionPath = path.join(dir, versionDir);
-
-			//console.log( apiName + ":" + versionName );
-
-			if( !apis[apiName].versions.hasOwnProperty( versionName ) )
-			{
-				apis[apiName].versions[versionName] = {};
-				apis[apiName].versions[versionName].contents = [];
-			}
-
-			// contents in a version
-			var contents = fs.readdirSync( versionPath );
-			for( var k = 0; k < contents.length; k++ )
-			{
-				var content = contents[k];
-				var jsPath = path.join( versionPath, content);
-				apis[apiName].versions[versionName].contents.push(
-				{
-					fullPath: jsPath,
-					markers : {},
-					distinctMarkers : {},
-					hash : {},
-					bigram : {}
-				});
-			}
-		}
-
+		loadJsLibVersions(apis,dir, apiName);
 	}
 
 	return apis;
 }
+
+function loadJsLibVersions (apis,dir, apiName) 
+{
+	// versions of an api
+	var versions = fs.readdirSync( dir );
+	for( var j = 0; j < versions.length; j++ )
+	{
+		var versionDir = versions[j];
+		var versionName = path.basename(versionDir).replace(apiName+"-");
+		var versionPath = path.join(dir, versionDir);
+
+		if( !apis[apiName].versions.hasOwnProperty( versionName ) )
+		{
+			apis[apiName].versions[versionName] = {};
+			apis[apiName].versions[versionName].contents = [];
+		}
+
+		// contents in a version
+		var contents = fs.readdirSync( versionPath );
+		for( var k = 0; k < contents.length; k++ )
+		{
+			var content = contents[k];
+			var jsPath = path.join( versionPath, content);
+			apis[apiName].versions[versionName].contents.push(
+			{
+				fullPath: jsPath,
+				markers : {},
+				distinctMarkers : {},
+				hash : {},
+				bigram : {}
+			});
+		}
+	}
+}
+
 
 function loadApis( base )
 {

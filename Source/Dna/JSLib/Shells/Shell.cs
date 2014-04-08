@@ -17,6 +17,10 @@ namespace Dna.JSLib.Shells
             // Redirect the output stream of the child process.
             if (!string.IsNullOrEmpty(wd))
             {
+                if (!Directory.Exists(wd))
+                {
+                    Directory.CreateDirectory(wd);
+                }
                 p.StartInfo.WorkingDirectory = wd;
             }
             p.StartInfo.UseShellExecute = useShell;
