@@ -58,10 +58,12 @@ else if( args[0] == "detect-api" )
 	{
 		var candidate = candidates[i];
 	
-		if( candidate.d >= .995 || candidate.hash || candidate.markerScore > .90 )
+		if( candidate.d >= .995 || candidate.hash || candidate.markerScore > .99 || candidate.callScore > .99 )
 		{
 			console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
-			console.log( candidate.d, candidate.hash, candidate.markerScore);
+			console.log( candidate.d, candidate.hash, candidate.markerScore, candidate.callScore);
+			//console.log( candidate.markers );
+			//console.log( candidate.contentMarkers );
 		}
 	}
 }
@@ -86,11 +88,30 @@ else if( args[0] == "test" )
 
 	var d = compare( jq172.bigram, charPairFrequency(body) );
 
+	//console.log( d, md5, jq172.hash);
 
-	console.log( d, md5, jq172.hash);
+	//console.log(  apis.jquery.versions["1.7.2"].distinctMarkers );
+
+	var calls = trace.extractBodyCalls( body );
+	var calls2 = trace.extractBodyCalls( fs.readFileSync(jq172.fullPath, 'utf8')  );
+
+	var markers = _.filter( _.keys(calls2), function (m) 
+	{
+		return Object.hasOwnProperty.call(calls,m);
+	});
+
+	//console.log( "cnnScript", _.keys(calls).length, "jq172", jq172.markers.length, "filtered", markers.length, "again", _.keys(calls2).length );
+
+	//console.log( fs.readFileSync(jq172.fullPath, 'utf8') );
 
 	//console.log( jq172.bigram, charPairFrequency(body));
 	//console.log(body);
+
+	//console.log( _.keys( calls2) );
+
+	var uslib = "http://z.cdn.turner.com/cnn/tmpl_asset/static/www_section/2551/js/uslib-min.js";
+	var body = traceObj.scripts[uslib].body.trim();
+	console.log( body );
 }
 else
 {
@@ -123,13 +144,15 @@ function scriptProperties(script)
 
 	var calls = trace.extractBodyCalls( body );
 
+	var markers = sequenceBodyWithoutExports( body );
+
 	var hash = crypto.createHash('md5');
 	hash.setEncoding('hex');
 	hash.write(body);
 	hash.end();
 	md5 = hash.read();
 
-	return {body: body, scriptUrl: scriptUrl, calls: calls, md5: md5};
+	return {body: body, scriptUrl: scriptUrl, calls: calls, markers: markers, md5: md5};
 }
 
 function matchAll (traceObj, apis, threshold) 
@@ -185,14 +208,22 @@ function matchAllApi (api, props)
 
 			// call score
 
-			var markers = _.filter( content.distinctMarkers, function (m) 
+			var markers = _.filter( content.markers, function (m) 
 			{
-				return Object.hasOwnProperty.call(props.calls,m);
+				return _.contains(props.markers,m);
+			});
+
+			var calls   = _.filter( content.calls, function (c) 
+			{
+				return Object.hasOwnProperty.call(props.calls,c);
 			});
 
 			candidates.push(
 			{
-				markerScore : markers.length / content.distinctMarkers.length,
+				markers: markers,
+				contentMarkers : content.markers,
+				markerScore : markers.length / content.markers.length,
+				callScore: calls.length / content.calls.length,
 				d : d,
 				hash : md5 == content.hash,
 				fullPath: content.fullPath,
@@ -337,14 +368,15 @@ function sequence(apis)
 			for( var i = 0; i < version.contents.length; i++  )
 			{
 				var content = version.contents[i];
+				var text = fs.readFileSync(content.fullPath, "utf8");
 
 				// markers
 				var markers = sequenceAPI( content.fullPath );
-				//console.log( apiName + ":" + v);
-				//console.log( markers.join() );
-				content.markers = markers;
+				content.markers = _.unique(markers);
 
-				var text = fs.readFileSync(content.fullPath, "utf8");
+				// calls
+				content.calls = _.unique(trace.extractBodyCalls( text ));
+
 				// hash
 				var hash = crypto.createHash('md5');
 				hash.setEncoding('hex');
@@ -367,9 +399,28 @@ function sequence(apis)
 
 function sequenceAPI(apiPath)
 {
+	var data = fs.readFileSync(apiPath, 'utf8');
+	return sequenceBody( data, apiPath);
+}
+
+function sequenceBodyWithoutExports(data)
+{
 	try
 	{
-		var data = fs.readFileSync(apiPath, 'utf8');
+		var markers = parse.extractMarkers( data );
+		return markers;
+	}
+	catch (err) 
+	{	
+		console.log(err);
+		return [];
+	}
+}
+
+function sequenceBody(data, apiPath)
+{
+	try
+	{
 		var markers = parse.extractMarkers( data );
 
 		// export
