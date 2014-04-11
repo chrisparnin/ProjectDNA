@@ -1,4 +1,5 @@
 ﻿using Dna.JSLib;
+using Dna.JSLib.Models;
 using Dna.JSLib.Shells;
 using Newtonsoft.Json.Linq;
 using System;
@@ -22,8 +23,19 @@ namespace Dna
             //Build(@"C:\dev\ProjectDNA\Source\ProjectDna\Data\JSLibs-Simple.csv", @"C:\dev\ProjectDNA\Resources\JsLib");
             //Sequence(@"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\JsLib");
 
-            if (args.Length < 1)
-                return;
+
+            //if (args.Length < 1)
+            //    return;
+            if (args.Length == 0)
+            {
+                args = new string[]
+                {
+                    "demo",
+                    @"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\JsLib\jquery",
+                    @"C:\DEV\ProjectDNA\Source\node\crawler\json"
+                };
+            }
+
 
             string cmd = args[0];
             switch (cmd)
@@ -34,14 +46,18 @@ namespace Dna
                     Build(args[1], args[2]);
                     break;
                 case "extract":
-                    // TODO Extract .min.js and .map if possible
                     // args[1] @"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\bower_components\"
                     // args[2] @"C:\dev\ProjectDNA\Resources\JsLib" (copies bower components (main outputs) to dest)
                     Extract(args[1], args[2]);
                     break;
                 case "sequence":
+                    Sequence(args[1]); // apisRootDirectory
                     break;
                 case "detect":
+                    Detect(args[1]);
+                    break;
+                case "demo":
+                    Demo(args[1], args[2]);
                     break;
                 default:
                     break;
@@ -49,6 +65,28 @@ namespace Dna
 
             Console.ReadKey();
         }
+        private static void Demo(string apiPath, string traceFileDir)
+        {
+            foreach (var traceFile in Directory.GetFiles(traceFileDir))
+            {
+                Console.WriteLine(traceFile);
+                var results = DnaShell.DetectApi(apiPath, traceFile);
+                var candidates = Rank.Top(results, apiPath, 1, new Criteria()
+                {
+                    MinMarkerScore = 0.90,
+                    MinDistance = .99,
+                    MinCallScore = .90
+                });
+
+                // because only looking at 1 top candidate, can flatten entire list.
+                var apiVersionList = Rank.Usage(candidates.SelectMany(c => c.Value).ToList());
+                foreach (var apiVersion in apiVersionList)
+                {
+                    Console.WriteLine(apiVersion.SummaryReport());
+                }
+            }
+        }
+        // TODO Metric -- inclusive, exclusion (calls/markers)
 
         private static void Sequence(string apisRootDirectory)
         {

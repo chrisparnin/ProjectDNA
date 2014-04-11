@@ -46,10 +46,14 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="CSVReader.cs" />
-    <Compile Include="JSLib\Api.cs" />
+    <Compile Include="JSLib\Models\Api.cs" />
+    <Compile Include="JSLib\Models\Candidate.cs" />
+    <Compile Include="JSLib\Models\ApiUsage.cs" />
+    <Compile Include="JSLib\Models\Criteria.cs" />
+    <Compile Include="JSLib\Rank.cs" />
     <Compile Include="JSLib\Shells\ApiVersionsShell.cs" />
     <Compile Include="JSLib\Shells\BowerShell.cs" />
-    <Compile Include="JSLib\Shells\DetectShell.cs" />
+    <Compile Include="JSLib\Shells\DnaShell.cs" />
     <Compile Include="JSLib\Fetch.cs" />
     <Compile Include="JSLib\Shells\GitShell.cs" />
     <Compile Include="JSLib\Shells\GruntShell.cs" />

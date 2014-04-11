@@ -30,13 +30,27 @@ else if( args[0] == "detect-api" )
 {
 	var candidates = [];
 
-	console.log( "loading");
-	var apis = loadSingleJsLib( args[1] ); // path to api versions 
+	var api = null;
+	var sequenceJsonPath = path.join(args[1],"sequence.json");
+	// Check for cached version of sequenced api, unless force option is given.
+	if( fs.existsSync(sequenceJsonPath) && !_.any(args, function (arg) {return arg == "--f";})
+)
+	{
+		api = require( sequenceJsonPath );
+	}
+	else
+	{
+		//console.log( "loading");
+		var apis = loadSingleJsLib( args[1] ); // path to api versions 
 
-	console.log( "sequencing");
-	sequence( apis );
+		//console.log( "sequencing");
+		sequence( apis );
 
-	var api = _.values(apis)[0];
+		api = _.values(apis)[0];
+
+		// cache
+		fs.writeFileSync( sequenceJsonPath, JSON.stringify(api) );
+	}
 
 	var data = fs.readFileSync(args[2], 'utf8'); 
 	var traceObj = JSON.parse( data );
@@ -44,7 +58,7 @@ else if( args[0] == "detect-api" )
 	for( var script in traceObj.scripts )
 	{
 		var props = scriptProperties(traceObj.scripts[script]);
-		console.log( "matching", props.scriptUrl);
+		//console.log( "matching", props.scriptUrl);
 
 		var apiCandidates = matchAllApi (api, props);
 		for( var i = 0; i < apiCandidates.length; i++ )
@@ -53,19 +67,9 @@ else if( args[0] == "detect-api" )
 		}
 	}
 
-	console.log("candidate pruning", candidates.length);
-	for( var i =0; i < candidates.length; i++ )
-	{
-		var candidate = candidates[i];
-	
-		if( candidate.d >= .995 || candidate.hash || candidate.markerScore > .99 || candidate.callScore > .99 )
-		{
-			console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
-			console.log( candidate.d, candidate.hash, candidate.markerScore, candidate.callScore);
-			//console.log( candidate.markers );
-			//console.log( candidate.contentMarkers );
-		}
-	}
+	console.log( JSON.stringify(candidates, null, 3) );
+
+	//console.log("candidate pruning", candidates.length);
 }
 else if( args[0] == "test" )
 {
@@ -116,6 +120,22 @@ else if( args[0] == "test" )
 else
 {
 	main();
+}
+
+function printCandidates (candidates) 
+{
+	for( var i =0; i < candidates.length; i++ )
+	{
+		var candidate = candidates[i];
+	
+		if( candidate.d >= .995 || candidate.hash || candidate.markerScore > .99 || candidate.callScore > .99 )
+		{
+			console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
+			console.log( candidate.d, candidate.hash, candidate.markerScore, candidate.callScore);
+			//console.log( candidate.markers );
+			//console.log( candidate.contentMarkers );
+		}
+	}
 }
 
 function detect (apis, path, options) 
@@ -412,7 +432,7 @@ function sequenceBodyWithoutExports(data)
 	}
 	catch (err) 
 	{	
-		console.log(err);
+		//console.log(err);
 		return [];
 	}
 }
@@ -430,7 +450,7 @@ function sequenceBody(data, apiPath)
 	}
 	catch (err) 
 	{	
-		console.log(err);
+		//console.log(err);
 		return [];
 	}
 }
@@ -544,19 +564,22 @@ function loadJsLibVersions (apis,dir, apiName)
 		}
 
 		// contents in a version
-		var contents = fs.readdirSync( versionPath );
-		for( var k = 0; k < contents.length; k++ )
+		if( fs.lstatSync(versionPath).isDirectory())
 		{
-			var content = contents[k];
-			var jsPath = path.join( versionPath, content);
-			apis[apiName].versions[versionName].contents.push(
+			var contents = fs.readdirSync( versionPath );
+			for( var k = 0; k < contents.length; k++ )
 			{
-				fullPath: jsPath,
-				markers : {},
-				distinctMarkers : {},
-				hash : {},
-				bigram : {}
-			});
+				var content = contents[k];
+				var jsPath = path.join( versionPath, content);
+				apis[apiName].versions[versionName].contents.push(
+				{
+					fullPath: jsPath,
+					markers : {},
+					distinctMarkers : {},
+					hash : {},
+					bigram : {}
+				});
+			}
 		}
 	}
 }
