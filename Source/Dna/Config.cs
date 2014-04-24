@@ -14,6 +14,29 @@ namespace Dna
         public static string GruntPath = Shell.FindExecutablePath("grunt");
         public static string NpmPath = Shell.FindExecutablePath("npm");
 
-        public static string NodeFilesPath = @"C:/DEV/ProjectDNA/Source/node";
+        public static string BowerRepositoryPath = EnsuresDirectoryExists(@"Resources\Bower");
+
+        // This program is a driver for the node source files located here:
+        public static string NodeFilesPath = 
+                // Search back from bin/Debug            
+                FileExistsOrNull("../../../node") ??
+                // same directory
+                FileExistsOrNull("node") ?? 
+                // Manual path
+                @"C:/DEV/ProjectDNA/Source/node";
+
+        public static string FileExistsOrNull(string path)
+        {
+            return System.IO.File.Exists(path) ? path : null;
+        }
+
+        public static string EnsuresDirectoryExists(string path)
+        {
+            if (!System.IO.Directory.Exists(path))
+            {
+                System.IO.Directory.CreateDirectory(path);
+            }
+            return path;
+        }
     }
 }

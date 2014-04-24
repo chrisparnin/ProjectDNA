@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="Config.cs" />
     <Compile Include="CSVReader.cs" />
+    <Compile Include="JSLib\Bower.cs" />
     <Compile Include="JSLib\Models\Api.cs" />
     <Compile Include="JSLib\Models\Candidate.cs" />
     <Compile Include="JSLib\Models\ApiUsage.cs" />

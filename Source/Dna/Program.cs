@@ -38,33 +38,53 @@ namespace Dna
 
 
             string cmd = args[0];
+            string bowerDir = Config.BowerRepositoryPath;
+
             switch (cmd)
             {
                 case "build":
                     // args[1] @"C:\dev\ProjectDNA\Source\ProjectDna\Data\JSLibs-Simple.csv", 
                     // @"C:\dev\ProjectDNA\Resources\Bower" (will install to Bower\bower_components)
-                    Build(args[1], args[2]);
+                    if (args.Length == 3)
+                    {
+                        bowerDir = args[2];
+                    }
+                    Build(args[1], bowerDir);
                     break;
                 case "extract":
-                    // args[1] @"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\bower_components\"
-                    // args[2] @"C:\dev\ProjectDNA\Resources\JsLib" (copies bower components (main outputs) to dest)
-                    Extract(args[1], args[2]);
+                    // args[1] @"C:\dev\ProjectDNA\Resources\JsLib" (copies bower components (main outputs) to dest)
+                    // args[2] @"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\Resources\Bower"
+                    if (args.Length == 3)
+                    {
+                        bowerDir = args[2];
+                    }
+                    bowerDir = System.IO.Path.Combine(bowerDir, "bower_components");
+                    Extract(bowerDir, args[1]);
                     break;
                 case "sequence":
                     Sequence(args[1]); // apisRootDirectory
                     break;
                 case "detect":
-                    Detect(args[1]);
+                    // args[1] path to JsLib created by "extract"
+                    // args[2] path to tracefile.
+                    Detect(MakeRelativePathAbsolute(args[1]), MakeRelativePathAbsolute(args[2]));
                     break;
                 case "demo":
-                    Demo(args[1], args[2]);
+                    Demo(MakeRelativePathAbsolute(args[1]), MakeRelativePathAbsolute(args[2]));
                     break;
                 default:
                     break;
             }
 
-            Console.ReadKey();
+            //Console.ReadKey();
         }
+
+        private static string MakeRelativePathAbsolute(string relPath)
+        {
+            return new DirectoryInfo(relPath).FullName;
+        }
+
+
         private static void Demo(string apiPath, string traceFileDir)
         {
             foreach (var traceFile in Directory.GetFiles(traceFileDir))
@@ -87,19 +107,19 @@ namespace Dna
             }
         }
         // TODO Metric -- inclusive, exclusion (calls/markers)
-
+        // TODO Json output.
         private static void Sequence(string apisRootDirectory)
         {
             SequenceShell.SequenceApis(apisRootDirectory);
         }
 
-        private static void Detect(string traceFileOrDirectory)
+        private static void Detect(string jsLib, string traceFileOrDirectory)
         {
             if (Directory.Exists(traceFileOrDirectory))
             {
                 foreach (var trace in Directory.EnumerateFiles(traceFileOrDirectory, "*.json"))
                 {
-                    // Shell.
+                    DnaShell.Detect(jsLib, trace);
                 }
             }
         }
@@ -111,188 +131,9 @@ namespace Dna
 
         private static void Extract(string bowerPath, string destPath)
         {
-            var apis = ExtractJsLibsFromBowerComponents(bowerPath);
+            var apis = Bower.ExtractJsLibsFromBowerComponents(bowerPath);
             
             apis.ForEach(api => api.CopyTo(destPath));
-        }
-
-        private static List<Api> ExtractJsLibsFromBowerComponents(string path)
-        {
-            var apis = new Dictionary<string,Api>();
-
-            foreach (var dir in Directory.EnumerateDirectories(path))
-            {
-                try
-                {
-                    ExtractLibVersionComponents(apis, dir);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            }
-
-            return apis.Values.ToList();
-        }
-
-        private static void ExtractLibVersionComponents(Dictionary<string, Api> apis, string dir)
-        {
-            var bower = Path.Combine(dir, ".bower.json");
-            var pkg = Path.Combine(dir, "package.json");
-
-            JObject obj = null;
-
-            if (File.Exists(bower))
-            {
-                obj = JObject.Parse(File.ReadAllText(bower));
-            }
-            else if (File.Exists(pkg))
-            {
-                obj = JObject.Parse(File.ReadAllText(pkg));
-            }
-
-            if (obj != null)
-            {
-                var name = obj.GetValue("name").Value<string>();
-
-                var versionTok = obj.GetValue("version");
-                // versions sometimes not in bower but in package
-                var version = "";
-                if (versionTok == null)
-                {
-                    if ((File.Exists(bower) && File.Exists(pkg)))
-                    {
-                        var tempObj = JObject.Parse(File.ReadAllText(pkg));
-                        version = tempObj.GetValue("version").Value<string>();
-                    }
-                }
-                else
-                {
-                    version = versionTok.Value<string>();
-                }
-
-
-
-
-                name = name.Replace("-" + version, "");
-
-                JToken mainTok = null;
-                var main = "";
-                if (obj.TryGetValue("main", out mainTok))
-                {
-                    main = mainTok.Type == JTokenType.String ? mainTok.Value<string>() :
-                        mainTok.First().Value<string>();
-                }
-                // If there is no "main" field provided, try looking in package.json.
-                else if ((File.Exists(bower) && File.Exists(pkg)))
-                {
-                    //obj = (JObject)Newtonsoft.Json.JsonConvert.DeserializeObject(File.ReadAllText(pkg));
-                    obj = JObject.Parse(File.ReadAllText(pkg));
-                    if (obj.TryGetValue("main", out mainTok))
-                    {
-                        main = mainTok.Type == JTokenType.String ? mainTok.Value<string>() :
-                            mainTok.First().Value<string>();
-                    }
-                }
-
-                // Sometimes people use name of api, but without .js...
-                // e.g. main: "lib/abaaso" refers to "lib/abaabso.js"
-                if (!Directory.Exists(Path.Combine(dir, main)) &&
-                    File.Exists(Path.Combine(dir, main + ".js"))
-                   )
-                {
-                    main = main + ".js";
-                }
-
-                // Crazy case -- if main is a gruntfile, build it.
-                if (main == "Gruntfile.js")
-                {
-                    NpmShell.InstallLocalDeps(dir);
-                    GruntShell.Build(dir);
-                    main = "dist";
-                }
-
-                // remove relative prefix ./
-                if (main.StartsWith("./"))
-                {
-                    main = main.Remove(0, 2);
-                }
-
-                Console.WriteLine("{0} {1} {2}", name, version, main);
-
-                if (!string.IsNullOrEmpty(main) &&
-                    (Directory.Exists(Path.Combine(dir, main))
-                      || File.Exists(Path.Combine(dir, main))
-                    )
-                  )
-                {
-                    if (!apis.ContainsKey(name))
-                    {
-                        apis[name] = new Api();
-                        apis[name].Name = name;
-                    }
-
-                    if (Directory.Exists(Path.Combine(dir, main)))
-                    {
-                        ApiVersion apiVersion = new ApiVersion();
-                        apiVersion.CanonicalPath = Path.Combine(dir, main).Replace("\\", "/");
-                        apiVersion.Version = version;
-                        apiVersion.Files = Directory.GetFiles(Path.Combine(dir, main), "*.js")
-                            .Select(f => f.Replace("\\", "/")).ToList();
-
-
-                        apis[name].AddVersion(apiVersion);
-                    }
-                    else
-                    {
-                        ApiVersion apiVersion = new ApiVersion();
-                        apiVersion.CanonicalPath = new FileInfo(Path.Combine(dir, main)).DirectoryName.Replace("\\", "/");
-                        apiVersion.Version = version;
-
-                        //var fileName = Path.Combine(dir, main).Replace("\\", "/");
-                        //apiVersion.Files.Add( fileName );
-                        apiVersion.Files = Directory.GetFiles(new FileInfo(Path.Combine(dir, main)).DirectoryName, "*.js")
-                            .Select(f => f.Replace("\\", "/")).ToList();
-
-                        apis[name].AddVersion(apiVersion);
-
-                    }
-                }
-            }
-        }
-
-
-
-
-        private static void ExtractJSLibFiles(string url, string baseDest, string name, string[] expectedOutput)
-        {
-            var path = Clone(url, baseDest, name);
-
-            if (File.Exists(Path.Combine(path, "package.json")) &&
-                expectedOutput.Any(output => !File.Exists(Path.Combine(path, output))))
-            {
-                // make sure local npm dependencies are retrieved
-                NpmShell.InstallLocalDeps(path);
-                // run grunt build
-                GruntShell.Build(path);
-            }
-
-            // .js *
-            var generated = expectedOutput.Select(output => Path.Combine(path, output))
-                .Where(p => File.Exists(p))
-                .ToList();
-
-            //Console.WriteLine( ex
-        }
-
-        private static string Clone(string url, string baseDest, string name)
-        {
-            string path = Path.Combine( baseDest, name );
-            if (!Directory.Exists(path))
-            {
-                GitShell.Clone(url, path);
-            }
-            return path;
         }
 
         public static void BuildApiLibrary(string csv, string dir)
@@ -301,23 +142,16 @@ namespace Dna
             // Parse and setup facts.
             var rows = System.IO.File
                 .ReadAllText(csv)
-                .Split(new string[]{"\r\n"}, StringSplitOptions.RemoveEmptyEntries)
+                .Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries)
                 .Skip(1) // skip headers
                 .Select(line => CSVReader.ParseCsvRow(line))
                 .ToList();
 
-            //var f = new JSLib.Fetch();
-            //if (!Directory.Exists(dir))
-            //{
-            //    Directory.CreateDirectory(dir);
-            //}
 
             foreach (var row in rows)
             {
-                //f.DownloadZip(row[3], Path.Combine( dir, row[0] + ".zip" ) );
-
                 // Option 1: Try to get all versions via Bower
-                Console.WriteLine(string.Format( "Option 1: Retrieving apis via bower - {0} - {1}", row[0], row[3]));
+                Console.WriteLine(string.Format("Option 1: Retrieving apis via bower - {0} - {1}", row[0], row[3]));
                 var output = ApiVersionsShell.InstallAllVersions(row[0], row[3], dir);
 
                 Console.WriteLine(output);

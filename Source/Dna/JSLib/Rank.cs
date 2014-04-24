@@ -31,9 +31,6 @@ namespace Dna.JSLib
 
                 set[scriptUrl] = ordered.ToList().Take(x).ToList();
             }
-            // TODO Fix api output (name, more than one script, remove duplicate)
-            // TODO Accurrancy: is semantics, distinct important for versions?
-
             return set;
         }
 
