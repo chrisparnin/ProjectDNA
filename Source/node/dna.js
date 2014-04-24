@@ -49,7 +49,7 @@ else if( args[0] == "detect-api" )
 		api = _.values(apis)[0];
 
 		// cache
-		fs.writeFileSync( sequenceJsonPath, JSON.stringify(api) );
+		fs.writeFileSync( sequenceJsonPath, JSON.stringify(api, null, 3) );
 	}
 
 	var data = fs.readFileSync(args[2], 'utf8'); 
