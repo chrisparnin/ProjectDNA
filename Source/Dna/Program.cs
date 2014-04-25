@@ -31,8 +31,8 @@ namespace Dna
                 args = new string[]
                 {
                     "demo",
-                    @"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\JsLib\jquery",
-                    @"C:\DEV\ProjectDNA\Source\node\crawler\json"
+                    @"Resources\JsLib\jquery",
+                    @"..\..\..\node\crawler\json"
                 };
             }
 
@@ -59,7 +59,7 @@ namespace Dna
                         bowerDir = args[2];
                     }
                     bowerDir = System.IO.Path.Combine(bowerDir, "bower_components");
-                    Extract(bowerDir, args[1]);
+                    Extract(bowerDir, MakeRelativePathAbsolute(args[1]));
                     break;
                 case "sequence":
                     Sequence(args[1]); // apisRootDirectory
@@ -78,6 +78,7 @@ namespace Dna
 
             //Console.ReadKey();
         }
+        // TODO Skip inline
 
         private static string MakeRelativePathAbsolute(string relPath)
         {
@@ -97,6 +98,8 @@ namespace Dna
                     MinDistance = .99,
                     MinCallScore = .90
                 });
+
+                Console.WriteLine(string.Format("Scanned {0} scripts.", candidates.Count)); 
 
                 // because only looking at 1 top candidate, can flatten entire list.
                 var apiVersionList = Rank.Usage(candidates.SelectMany(c => c.Value).ToList());
