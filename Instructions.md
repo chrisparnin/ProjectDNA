@@ -64,7 +64,7 @@ is
 
 ### X. Demo
 
-The following is a demo that will scan a directory of trace files and check for instances of jquery query present on scripts references from the website.
+The following is a demo that will scan a directory of trace files and check for instances of jquery references from a website.
 
     Dna.exe demo Resources\JsLib\jquery\ ..\..\..\node\crawler\json\
 
