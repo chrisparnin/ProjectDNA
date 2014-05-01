@@ -69,6 +69,12 @@ namespace Dna
                     // args[2] path to tracefile.
                     Detect(MakeRelativePathAbsolute(args[1]), MakeRelativePathAbsolute(args[2]));
                     break;
+                case "identify":
+                    // args[1] path to JsLib created by "extract"
+                    // stdin string content to be identified.
+                    string stdin = "";
+                    Identify(MakeRelativePathAbsolute(args[1]), stdin);
+                    break;
                 case "demo":
                     Demo(MakeRelativePathAbsolute(args[1]), MakeRelativePathAbsolute(args[2]));
                     break;
@@ -77,6 +83,12 @@ namespace Dna
             }
 
             //Console.ReadKey();
+        }
+
+        private static void Identify(string path, string stdin)
+        {
+            var results = DnaShell.Identify(path, stdin);
+
         }
         // TODO Skip inline
 

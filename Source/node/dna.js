@@ -14,43 +14,56 @@ if( args[0] == "sequence" )
 	// args[1] = "JsLib"
 	// collection of javascript libraries produced by ApiVersions.js (build/extract cmds in C# driver)
 	// api/versions/content
-	var apis = loadJsLib(path);
+	var apis = loadJsLib(args[1]);
 	sequence(apis);
 	console.log( JSON.stringify(apis, null, 3 ));
 
 	//var dist = charPairFrequency("france is pants, it is nice, this time of year");
 	//console.log( dist );
 }
+else if( args[0] == "identify" )
+{
+	process.stdin.setEncoding('utf8');
+
+	var input = "";
+	process.stdin.on('readable', function(chunk) {
+	  var chunk = process.stdin.read();
+	  if( chunk !== null )
+	  {
+	  	input += chunk;
+	  }
+	});
+
+	process.stdin.on('end', function() 
+	{
+		var candidates = [];
+
+		var apis = require("./" + args[1]);
+
+		var props = scriptProperties( {body:input, scriptUrl:"stdin"} );
+
+		//console.log( props );
+
+		var apiCandidates = matchAllScript(props, apis, .90);
+		for( var i = 0; i < apiCandidates.length; i++ )
+		{
+			candidates.push( apiCandidates[i] );
+		}
+
+		//console.log( JSON.stringify(candidates, null, 3) );
+	});	
+}
 else if( args[0] == "detect" )
 {
-	var apis = require('./foo.json');
+	//var apis = require('./foo.json');
+	var apis = require(args[2]);
 	detect(apis, args[1], {bigramThreshold: .995});
 }
 else if( args[0] == "detect-api" )
 {
 	var candidates = [];
 
-	var api = null;
-	var sequenceJsonPath = path.join(args[1],"sequence.json");
-	// Check for cached version of sequenced api, unless force option is given.
-	if( fs.existsSync(sequenceJsonPath) && !_.any(args, function (arg) {return arg == "--f";})
-)
-	{
-		api = require( sequenceJsonPath );
-	}
-	else
-	{
-		//console.log( "loading");
-		var apis = loadSingleJsLib( args[1] ); // path to api versions 
-
-		//console.log( "sequencing");
-		sequence( apis );
-
-		api = _.values(apis)[0];
-
-		// cache
-		fs.writeFileSync( sequenceJsonPath, JSON.stringify(api, null, 3) );
-	}
+	var api = loadApi( args );
 
 	var data = fs.readFileSync(args[2], 'utf8'); 
 	var traceObj = JSON.parse( data );
@@ -120,6 +133,32 @@ else if( args[0] == "test" )
 else
 {
 	main();
+}
+
+function loadApi (args)
+{
+	var api = null;
+	var sequenceJsonPath = path.join(args[1],"sequence.json");
+
+	// Check for cached version of sequenced api, unless force option is given.
+	if( fs.existsSync(sequenceJsonPath) && !_.any(args, function (arg) {return arg == "--f";}))
+	{
+		api = require( sequenceJsonPath );
+	}
+	else
+	{
+		//console.log( "loading");
+		var apis = loadSingleJsLib( args[1] ); // path to api versions 
+
+		//console.log( "sequencing");
+		sequence( apis );
+
+		api = _.values(apis)[0];
+
+		// cache
+		fs.writeFileSync( sequenceJsonPath, JSON.stringify(api, null, 3) );
+	}
+	return api;
 }
 
 function printCandidates (candidates) 
@@ -205,6 +244,37 @@ function matchAll (traceObj, apis, threshold)
 		}
 	}
 }
+
+
+function matchAllScript (scriptProps, apis, threshold) 
+{
+	var candidates = [];
+
+	for( var apiName in apis )
+	{
+		var api = apis[apiName];
+
+		var apiCandidates = matchAllApi (api, scriptProps);
+
+		for( var i = 0; i < apiCandidates.length; i++ )
+		{
+			candidates.push( apiCandidates[i] );
+		}
+	}
+
+	for( var i =0; i < candidates.length; i++ )
+	{
+		var candidate = candidates[i];
+		if( candidate.d >= threshold || candidate.hash || candidate.markerScore > .90 )
+		{
+			console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
+			console.log( candidate.d, candidate.hash, candidate.markerScore);
+		}
+	}
+
+	return candidates;
+}
+
 
 function matchAllApi (api, props) 
 {

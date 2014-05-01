@@ -29,5 +29,17 @@ namespace Dna.JSLib.Shells
             return list.Select(item => Candidate.FromJSONObject( (JObject)item)).ToList();
         }
 
+
+        internal static List<Candidate> Identify(string apiPath, string stdin)
+        {
+            string cmd = string.Format(" /C node {0}/dna.js identify {1}", Config.NodeFilesPath, apiPath);
+            var results = Shell.RunProcess(cmd, "cmd", false, "");
+
+            //Console.WriteLine("detect-api:" + results);
+            var list = JArray.Parse(results);
+
+            return list.Select(item => Candidate.FromJSONObject((JObject)item)).ToList();
+
+        }
     }
 }

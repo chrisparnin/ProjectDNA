@@ -42,6 +42,44 @@ namespace Dna.JSLib.Shells
             return null;
         }
 
+        public static string RunProcessWithStdin(string command, string exe, bool useShell, string wd, string stdin)
+        {
+            // Start the child process.
+            Process p = new Process();
+            // Redirect the output stream of the child process.
+            if (!string.IsNullOrEmpty(wd))
+            {
+                if (!Directory.Exists(wd))
+                {
+                    Directory.CreateDirectory(wd);
+                }
+                p.StartInfo.WorkingDirectory = wd;
+            }
+            p.StartInfo.UseShellExecute = useShell;
+            p.StartInfo.RedirectStandardOutput = !useShell;
+            p.StartInfo.FileName = exe;
+            p.StartInfo.Arguments = command;
+
+            p.StartInfo.RedirectStandardInput = true;
+
+            //var path = p.StartInfo.EnvironmentVariables["PATH"];
+            //p.StartInfo.EnvironmentVariables["PATH"] = System.Environment.GetEnvironmentVariable("PATH");
+            p.Start();
+
+            p.StandardInput.Write(stdin);
+            p.StandardInput.Close();
+
+            if (!useShell)
+            {
+                // Read the output stream first and then wait.
+                string output = p.StandardOutput.ReadToEnd();
+                p.WaitForExit();
+                return output;
+            }
+            p.WaitForExit();
+            return null;
+        }
+
         public static string FindExecutablePath(string exe)
         {
             var enviromentPath = System.Environment.GetEnvironmentVariable("PATH");
