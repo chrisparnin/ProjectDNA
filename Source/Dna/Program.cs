@@ -4,6 +4,7 @@ using Dna.JSLib.Shells;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -28,12 +29,22 @@ namespace Dna
             //    return;
             if (args.Length == 0)
             {
-                args = new string[]
+                if (Debugger.IsAttached)
                 {
-                    "demo",
-                    @"Resources\JsLib\jquery",
-                    @"..\..\..\node\crawler\json"
-                };
+                    //args = new string[]
+                    //{
+                    //    "demo",
+                    //    @"Resources\JsLib\jquery",
+                    //    @"..\..\..\node\crawler\json"
+                    //};
+
+                    args = Config.SampleIdentifyArguments;
+                }
+                else
+                {
+                    Console.WriteLine("See github doc for usage params");
+                    return;
+                }
             }
 
 
@@ -71,8 +82,26 @@ namespace Dna
                     break;
                 case "identify":
                     // args[1] path to JsLib created by "extract"
-                    // stdin string content to be identified.
+                    // args[2] or stdin -- string content to be identified.
                     string stdin = "";
+                    if (args.Length == 3)
+                    {
+                        stdin = File.ReadAllText(args[2]);
+                    }
+                    else 
+                    {
+                        // http://stackoverflow.com/questions/199528/c-sharp-console-receive-input-with-pipe
+                        try
+                        {
+                            var isKeyAvailable = System.Console.KeyAvailable;
+                        }
+                        catch (InvalidOperationException expected)
+                        {
+                            // Therefore, piped input.
+                            stdin = System.Console.In.ReadToEnd();
+                        }
+                    }
+                    //Console.WriteLine(GetStringSha1Hash(stdin));
                     Identify(MakeRelativePathAbsolute(args[1]), stdin);
                     break;
                 case "demo":
@@ -85,9 +114,40 @@ namespace Dna
             //Console.ReadKey();
         }
 
+        internal static string GetStringSha1Hash(string text)
+        {
+            if (String.IsNullOrEmpty(text))
+                return String.Empty;
+
+            using (var sha1 = new System.Security.Cryptography.SHA1Managed())
+            {
+                byte[] textData = Encoding.UTF8.GetBytes(text);
+
+                byte[] hash = sha1.ComputeHash(textData);
+
+                return BitConverter.ToString(hash).Replace("-", String.Empty);
+            }
+        }
+
         private static void Identify(string path, string stdin)
         {
             var results = DnaShell.Identify(path, stdin);
+
+            var candidates = Rank.Top(results, "", 1, new Criteria()
+            {
+                MinMarkerScore = 0.90,
+                MinDistance = .99,
+                MinCallScore = .90
+            });
+
+            Console.WriteLine(string.Format("Scanned {0} scripts.", candidates.Count));
+
+            // because only looking at 1 top candidate, can flatten entire list.
+            var apiVersionList = Rank.Usage(candidates.SelectMany(c => c.Value).ToList());
+            foreach (var apiVersion in apiVersionList)
+            {
+                Console.WriteLine(apiVersion.SummaryReport());
+            }
 
         }
         // TODO Skip inline

@@ -33,13 +33,13 @@ namespace Dna.JSLib.Shells
         internal static List<Candidate> Identify(string apiPath, string stdin)
         {
             string cmd = string.Format(" /C node {0}/dna.js identify {1}", Config.NodeFilesPath, apiPath);
-            var results = Shell.RunProcess(cmd, "cmd", false, "");
+            var results = Shell.RunProcessWithStdin(cmd, "cmd", false, "", stdin);
 
-            //Console.WriteLine("detect-api:" + results);
             var list = JArray.Parse(results);
 
             return list.Select(item => Candidate.FromJSONObject((JObject)item)).ToList();
 
         }
+        // TODO Use version string regex to help rank against possible versions.
     }
 }

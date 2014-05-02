@@ -32,8 +32,8 @@ namespace Dna.JSLib.Models
             var c = new Candidate();
             c.Markers = obj.GetValue("markers").ToObject<string[]>().ToList();
             c.ContentMarkers = obj.GetValue("contentMarkers").ToObject<string[]>().ToList();
-            c.MarkerScore = obj.GetValue("markerScore").ToObject<double>();
-            c.CallScore = obj.GetValue("callScore").ToObject<double>();
+            c.MarkerScore = string.IsNullOrEmpty(obj.GetValue("markerScore").ToString()) ? 0.0 : obj.GetValue("markerScore").ToObject<double>();
+            c.CallScore = string.IsNullOrEmpty(obj.GetValue("callScore").ToString()) ? 0.0 : obj.GetValue("callScore").ToObject<double>();
             c.Distance = string.IsNullOrEmpty( obj.GetValue("d").ToString()) ? 0.0 : obj.GetValue("d").ToObject<double>();
             c.Md5Match = obj.GetValue("hash").ToObject<bool>();
             c.ApiFullPath = obj.GetValue("fullPath").ToObject<string>();

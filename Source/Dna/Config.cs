@@ -2,6 +2,7 @@
 using Dna.JSLib.Shells;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -38,5 +39,19 @@ namespace Dna
             }
             return path;
         }
+
+
+        public static string[] SampleIdentifyArguments
+        {
+             get 
+             {
+                 return new string[]
+                 {
+                    "identify",
+                    @"Resources\JsLib",
+                    File.ReadAllText(@"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\Resources\JsLib\backbone\1.1.2\backbone.js")
+                 }; 
+             }
+        }        
     }
 }

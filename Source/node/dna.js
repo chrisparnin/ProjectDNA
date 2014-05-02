@@ -36,21 +36,42 @@ else if( args[0] == "identify" )
 
 	process.stdin.on('end', function() 
 	{
-		var candidates = [];
+		var debug = false;
 
-		var apis = require("./" + args[1]);
+		var sequenceJsonPath = path.join(args[1],"sequence.json");
+
+		var apis = null;
+		// Check for cached version of sequenced api, unless force option is given.
+		if( fs.existsSync(sequenceJsonPath) && !_.any(args, function (arg) {return arg == "--f";}))
+		{
+			apis = require( sequenceJsonPath );
+		}
+		else
+		{
+			var apis = loadJsLib(args[1]);
+			sequence(apis);
+		}
 
 		var props = scriptProperties( {body:input, scriptUrl:"stdin"} );
 
 		//console.log( props );
 
-		var apiCandidates = matchAllScript(props, apis, .90);
-		for( var i = 0; i < apiCandidates.length; i++ )
+		var candidates = matchAllScript(props, apis);
+
+		if( debug )
 		{
-			candidates.push( apiCandidates[i] );
+			for( var i =0; i < candidates.length; i++ )
+			{
+				var candidate = candidates[i];
+				if( candidate.d >= .90 || candidate.hash || candidate.markerScore > .90 )
+				{
+					console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
+					console.log( candidate.d, candidate.hash, candidate.markerScore);
+				}
+			}
 		}
 
-		//console.log( JSON.stringify(candidates, null, 3) );
+		console.log( JSON.stringify(candidates, null, 3) );
 	});	
 }
 else if( args[0] == "detect" )
@@ -246,29 +267,20 @@ function matchAll (traceObj, apis, threshold)
 }
 
 
-function matchAllScript (scriptProps, apis, threshold) 
+function matchAllScript (scriptProps, apis) 
 {
 	var candidates = [];
 
 	for( var apiName in apis )
 	{
 		var api = apis[apiName];
+		api.name = apiName;
 
 		var apiCandidates = matchAllApi (api, scriptProps);
 
 		for( var i = 0; i < apiCandidates.length; i++ )
 		{
 			candidates.push( apiCandidates[i] );
-		}
-	}
-
-	for( var i =0; i < candidates.length; i++ )
-	{
-		var candidate = candidates[i];
-		if( candidate.d >= threshold || candidate.hash || candidate.markerScore > .90 )
-		{
-			console.log( candidate.scriptUrl + ":" + candidate.apiName + ":" + candidate.version + ":" + candidate.fullPath);
-			console.log( candidate.d, candidate.hash, candidate.markerScore);
 		}
 	}
 
