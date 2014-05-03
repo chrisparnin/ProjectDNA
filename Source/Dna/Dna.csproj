@@ -59,7 +59,6 @@
     <Compile Include="JSLib\Shells\GitShell.cs" />
     <Compile Include="JSLib\Shells\GruntShell.cs" />
     <Compile Include="JSLib\Shells\NpmShell.cs" />
-    <Compile Include="JSLib\Shells\SequenceShell.cs" />
     <Compile Include="JSLib\Shells\Shell.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

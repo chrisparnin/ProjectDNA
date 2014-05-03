@@ -31,14 +31,11 @@ namespace Dna
             {
                 if (Debugger.IsAttached)
                 {
-                    //args = new string[]
-                    //{
-                    //    "demo",
-                    //    @"Resources\JsLib\jquery",
-                    //    @"..\..\..\node\crawler\json"
-                    //};
+                    args = Config.SampleDemoArguments;
 
                     args = Config.SampleIdentifyArguments;
+
+                    args = Config.SampleSequenceArguments;
                 }
                 else
                 {
@@ -73,7 +70,7 @@ namespace Dna
                     Extract(bowerDir, MakeRelativePathAbsolute(args[1]));
                     break;
                 case "sequence":
-                    Sequence(args[1]); // apisRootDirectory
+                    Sequence(MakeRelativePathAbsolute(args[1])); // apisRootDirectory
                     break;
                 case "detect":
                     // args[1] path to JsLib created by "extract"
@@ -189,7 +186,7 @@ namespace Dna
         // TODO Json output.
         private static void Sequence(string apisRootDirectory)
         {
-            SequenceShell.SequenceApis(apisRootDirectory);
+            DnaShell.SequenceApis(apisRootDirectory);
         }
 
         private static void Detect(string jsLib, string traceFileOrDirectory)

@@ -616,14 +616,18 @@ function loadJsLib( base )
 		var apiName = dirs[i];
 		var dir = path.join(base, apiName );
 
-		if( !apis.hasOwnProperty( apiName ) )
+		if( fs.lstatSync(dir).isDirectory())
 		{
-			apis[apiName] = {};
-			apis.name = apiName;
-			apis[apiName].versions = {};
-		}
 
-		loadJsLibVersions(apis,dir, apiName);
+			if( !apis.hasOwnProperty( apiName ) )
+			{
+				apis[apiName] = {};
+				apis.name = apiName;
+				apis[apiName].versions = {};
+			}
+
+			loadJsLibVersions(apis,dir, apiName);
+		}
 	}
 
 	return apis;

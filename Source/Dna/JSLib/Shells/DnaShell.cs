@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -41,5 +42,16 @@ namespace Dna.JSLib.Shells
 
         }
         // TODO Use version string regex to help rank against possible versions.
+
+        public static string SequenceApis(string apisRootDirectory)
+        {
+            string cmd = string.Format(" /C node {0}/dna.js sequence {1}", Config.NodeFilesPath, apisRootDirectory);
+            var results = Shell.RunProcess(cmd, "cmd", false, "");
+
+            File.WriteAllText(Path.Combine(apisRootDirectory, "sequence.json"), results);
+
+
+            return results;
+        }
     }
 }

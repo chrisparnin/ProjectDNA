@@ -52,6 +52,31 @@ namespace Dna
                     File.ReadAllText(@"C:\DEV\ProjectDNA\Source\Dna\bin\Debug\Resources\JsLib\backbone\1.1.2\backbone.js")
                  }; 
              }
-        }        
+        }
+
+        public static string[] SampleSequenceArguments
+        {
+            get
+            {
+                return new string[]
+                {
+                    "sequence",
+                    @"Resources\JsLib",
+                };
+            }
+        }
+        public static string[] SampleDemoArguments
+        {
+            get
+            {
+                return new string[]
+                {
+                    "demo",
+                    @"Resources\JsLib\jquery",
+                    @"..\..\..\node\crawler\json"
+                };
+            }
+        }
+
     }
 }
