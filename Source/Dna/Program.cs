@@ -133,21 +133,25 @@ namespace Dna
         {
             var results = DnaShell.Identify(path, stdin);
 
-            var candidates = Rank.Top(results, "", 1, new Criteria()
+            var candidates = Rank.Top(results, "", 10, new Criteria()
             {
                 MinMarkerScore = 0.90,
                 MinDistance = .99,
                 MinCallScore = .90
             });
 
-            Console.WriteLine(string.Format("Scanned {0} scripts.", candidates.Count));
+            var items = candidates.First().Value;
+            foreach (var candidate in items )
+            {
+                Console.WriteLine("{0} {1} Distance {2} ", candidate.Api, candidate.Version, candidate.Distance);
+            }
 
             // because only looking at 1 top candidate, can flatten entire list.
-            var apiVersionList = Rank.Usage(candidates.SelectMany(c => c.Value).ToList());
-            foreach (var apiVersion in apiVersionList)
-            {
-                Console.WriteLine(apiVersion.SummaryReport());
-            }
+            //var apiVersionList = Rank.Usage(candidates.SelectMany(c => c.Value).ToList());
+            //foreach (var apiVersion in apiVersionList)
+            //{
+            //    Console.WriteLine(apiVersion.SummaryReport());
+            //}
 
         }
         // TODO Skip inline
